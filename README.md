@@ -7,76 +7,76 @@
  * msgpack: 简单灵活，但是过度的自由可能是一个灾难
  * thrift：数据有类型，可以规范客户端的调用(从工程角度更加合适)
 
-## ZeroThrift Server
+## ZeroThrift RPC
+
+### 工作模式1
+* 简单的zeromq DEALER + ROUTER模式
+
+```bash
+cd example
+# 在一个Shell中启动
+python thrift_simple_server.py
+# 在另外一个Shell中启动
+python thrift_simple_client.py
+```
+
+* Client端的代码
 
 ```python
-# 工作模式1
-# Server
-from zerothrift import Server, events
+from account_service.AccountService import Client
+from zerothrift import (TimeoutException, get_transport, get_protocol)
 
-# 定义Thrift的Processor的实现
-class PingPongDispatcher(object):
-    def ping(self):
-        return "pong"
+# 创建transport
+_ = get_transport("tcp://127.0.0.1:10004", timeout=5)
 
-# 创建Thrift Processor
-from accounts.account_api.PingService import Processor
-processor = Processor(PingPongDispatcher())
-
-# 创建一个Server
-s = Server(processor, pool_size=10)
-s.bind("tcp://127.0.0.1:5556")
-s.run()
+# 创建client
+protocol = get_protocol("")
+client = Client(protocol)
 
 
-# 对应的Client:
-import zmq
-from zerothrift import TZmqTransport
-from accounts.account_api import PingService
-endpoint = "tcp://localhost:4242"
-socktype = zmq.REQ
+# 调用client的方法
+result = client.get_user_by_id(i)
 
-transport = TZmqTransport(None, endpoint, socktype)
-protocol = thrift.protocol.TBinaryProtocol.TBinaryProtocol(transport)
-client = PingService.Client(protocol)
-transport.open()
-
-print client.ping()
-
-# 工作模式2:
-
-# Server
-from zerothrift import Server, events
-
-# 定义Thrift的Processor的实现
-class PingPongDispatcher(object):
-    def ping(self):
-        return "pong"
-
-# 创建Thrift Processor
-from accounts.account_api.PingService import Processor
-processor = Processor(PingPongDispatcher())
-
-# 创建一个Server
-s = Server(processor, pool_size=10)
-s.connect("tcp://127.0.0.1:5556")
-s.run()
-
-# 中间增加一个zeromq queue或者普通的load balance
-
-# Client同上
-
-# 工作模式3:
-events.mode_ppworker = True
-events.service = "demo"
-# 开启 Paranoid Pirate queue 模式，如果queue挂了，重启之后RPC Server能自动重连，增加了系统的高可用
-s = Server(app, pool_size=10)
-s.connect("tcp://127.0.0.1:5556")
-s.run()
-
-# queue采用: ppqueue（参考zmq4中的demo)
-
-
-# 其他的
-# TODO：需要充分研究zeromq, 挖掘其强大的功能
 ```
+* Server端的代码
+
+```python
+from account_service.AccountService import Processor
+# 创建Processor
+processor = Processor(AccountProcessor())
+
+# 创建Server
+s = Server(processor, pool_size=5, mode_ppworker=False)
+s.bind("tcp://127.0.0.1:10004")
+s.run()
+```
+
+
+### 工作模式2
+* DEALER + (ROUTER, DEALER) + (ROUTER, ROUTER) + DEALER(4层结构)
+* 中间两个环节采用Go实现，见: https://github.com/wfxiang08/rpc_proxy
+
+```bash
+# 需要在本地启动一个zk
+rpc_proxy -c config.ini
+rpc_lb -c config.ini
+python thrift_pp_worker.py
+python thrift_proxy_client.py
+```
+* Client端的代码
+
+```python
+_ = get_transport(endpoint)
+protocol = get_protocol(service) # 上面的差别在与service不为空
+client = Client(protocol)
+```
+
+* Server端代码
+
+```python
+# 和工作模式1区别在于: mode_ppworker 为True, 它会和rpc_lb进行心跳，数据通信
+s = Server(processor, pool_size=worker_pool_size, service=service, mode_ppworker=True)
+s.connect(endpoint)
+s.run()
+```
+

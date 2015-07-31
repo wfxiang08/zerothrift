@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from thrift.protocol.TBinaryProtocol import TBinaryProtocol
+import time
+
 import demo_common
+
+
+
 demo_common.setup()
 
 
@@ -9,21 +13,35 @@ demo_common.setup()
 def main():
 
 
-    import zmq
-    from zerothrift import TZmqTransport
-    from accounts.account_api import PingService
+    from account_service.AccountService import Client
+    from zerothrift import (TimeoutException, get_transport, get_protocol)
+
+    _ = get_transport("tcp://127.0.0.1:10004", timeout=5)
+
+    protocol = get_protocol("")
+    client = Client(protocol)
 
 
-    endpoint = "tcp://localhost:5556"
-    socktype = zmq.DEALER
+    total_times = 10000
+    t1 = time.time()
 
-    transport = TZmqTransport(endpoint, socktype)
-    protocol = TBinaryProtocol(transport)
+    for i in range(0, total_times):
+        try:
+            result = client.get_user_by_id(i)
+            print "Index: ", i, ", username: ", result.username
+        except TimeoutException as e:
+            print "TimeoutException: ", e
+        except Exception as e:
+            print "Exception: ", e
 
-    client = PingService.Client(protocol)
-    transport.open()
+        if i % 200 == 0:
+            print "QPS: %.2f" % (i / (time.time() - t1), )
 
-    print client.ping()
+    t = time.time() - t1
+    print "Round Trip: %.4fs" % (t / total_times)
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,7 @@ demo_common.setup()
 def main():
     from zerothrift import RPC_DEFAULT_CONFIG, RPC_SERVICE, RPC_PROXY_ADDRESS
     from zerothrift import parse_config
-    from account_service.AccountService import Client as PingClient
+    from account_service.AccountService import Client
     from zerothrift import (TimeoutException, get_transport, get_protocol)
 
 
@@ -20,7 +20,7 @@ def main():
 
     _ = get_transport(endpoint)
     protocol = get_protocol(service)
-    client = PingClient(protocol)
+    client = Client(protocol)
 
 
     total_times = 10000

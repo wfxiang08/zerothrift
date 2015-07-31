@@ -9,14 +9,14 @@ from zerothrift.core.server import *
 _transport = None
 _endpoint = None
 
-def get_transport(endpoint=None):
+def get_transport(endpoint=None, timeout=5):
     global _transport, _endpoint
 
     assert _endpoint is None or _endpoint == endpoint
 
     if not _transport:
         _endpoint = endpoint
-        _transport = TZmqTransport(endpoint, zmq.DEALER)
+        _transport = TZmqTransport(endpoint, zmq.DEALER, timeout=timeout)
         _transport.open()
     return _transport
 
