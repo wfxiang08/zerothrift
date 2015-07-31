@@ -22,47 +22,6 @@ INTERVAL_MAX = 4
 
 EMPTY_STRING = b''
 
-class FastPoller(gzmq.Poller):
-    def poll(self, timeout=-1):
-        """Overridden method to ensure that the green version of
-        Poller is used.
-
-        Behaves the same as :meth:`zmq.core.Poller.poll`
-        """
-
-        if timeout is None:
-            timeout = -1
-
-        if timeout < 0:
-            timeout = -1
-
-        rlist = None
-        wlist = None
-        xlist = None
-
-        if timeout > 0:
-            tout = gevent.Timeout.start_new(timeout/1000.0)
-
-        try:
-            # Loop until timeout or events available
-            rlist, wlist, xlist = self._get_descriptors()
-            while True:
-                events = super(gzmq.Poller, self).poll(0)
-                if events or timeout == 0:
-                    return events
-
-                # wait for activity on sockets in a green way
-                # 不等待，直接返回
-                select.select(rlist, wlist, xlist, timeout=0)
-
-        except gevent.Timeout as t:
-            if t is not tout:
-                raise
-            return []
-        finally:
-           if timeout > 0:
-               tout.cancel()
-
 class Events(object):
     """
         Events内部管理: zmq.Socket
@@ -80,12 +39,10 @@ class Events(object):
         self.mode_ppworker = mode_ppworker
         self.service = service
 
-        self.identity = "%s-%04X-%04X" % (service or "T", os.getpid(), randint(0, 0x10000))
+        self.identity = "%s-%04X-%04X" % (service or "test", os.getpid(), randint(0, 0x10000))
 
         self.socket = None
         self.poller = gzmq.Poller()
-        # self.poller = FastPoller()
-
 
         self.endpoint = None
         self.create_worker_socket()

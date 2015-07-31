@@ -4,32 +4,37 @@ import demo_common
 demo_common.setup()
 
 
+from account_service.AccountService import Iface
+from account_service.ttypes import UserInfo
+
+
 # 采用thrift + gevent对外提供服务
 # 参考: https://github.com/eleme/gunicorn_thrift
 #
-from zerothrift import Server
+from zerothrift import (Server, parse_config, RPC_DEFAULT_CONFIG, RPC_SERVICE, RPC_BACK_ADDRESS,
+    RPC_WORKER_POOL_SIZE)
+
 # 服务的实现
+class AccountProcessor(Iface):
+    def get_user_by_id(self, id):
+        user_info = UserInfo(id, "hello_%s" % id)
+        print "user_name: ", user_info.username
+        return user_info
 
-class PingPongDispatcher(object):
-    index = 0
-    def ping(self):
-        self.index += 1
-        print "Index: ", self.index
-        # sleep(0.1)
-        return "pong"
-
-    def progress(self, num1):
-        # sleep(0.001)
-        # print "Num: ", num1
-        return num1
 
 def main():
     # 使用静态的代码，看起来脏一点，但是类型限定更加直接
-    from accounts.account_api.PingService import Processor
-    processor = Processor(PingPongDispatcher())
-    # 如何判断当前的Queue是否已经挂了
-    s = Server(processor, pool_size=10, mode_ppworker = True, service="demo")
-    s.connect("tcp://127.0.0.1:5556")
+    from account_service.AccountService import Processor
+    processor = Processor(AccountProcessor())
+
+
+    config = parse_config(RPC_DEFAULT_CONFIG)
+    endpoint = config[RPC_BACK_ADDRESS]
+    service = config[RPC_SERVICE]
+    worker_pool_size = int(config[RPC_WORKER_POOL_SIZE])
+
+    s = Server(processor, pool_size=worker_pool_size, service=service)
+    s.connect(endpoint)
     s.run()
 
 if __name__ == "__main__":

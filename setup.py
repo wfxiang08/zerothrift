@@ -13,6 +13,7 @@ requirements = [
     'gevent>=1.0',
     'pyzmq==13.1.0',
     'thrift==0.9.2',
+    'colorama>=0.3.3'
 ]
 if sys.version_info < (2, 7):
     requirements.append('argparse')

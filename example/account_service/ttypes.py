@@ -3,7 +3,7 @@
 #
 # DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 #
-#  options string: py:new_style,utf8strings
+#  options string: py
 #
 
 from thrift.Thrift import TType, TMessageType, TException, TApplicationException
@@ -17,19 +17,22 @@ except:
 
 
 
-class AboutToShutDownException(TException):
+class UserInfo:
   """
   Attributes:
-   - why
+   - id
+   - username
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRING, 'why', None, None, ), # 1
+    (1, TType.I32, 'id', None, None, ), # 1
+    (2, TType.STRING, 'username', None, None, ), # 2
   )
 
-  def __init__(self, why=None,):
-    self.why = why
+  def __init__(self, id=None, username=None,):
+    self.id = id
+    self.username = username
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -41,8 +44,13 @@ class AboutToShutDownException(TException):
       if ftype == TType.STOP:
         break
       if fid == 1:
+        if ftype == TType.I32:
+          self.id = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
         if ftype == TType.STRING:
-          self.why = iprot.readString().decode('utf-8')
+          self.username = iprot.readString()
         else:
           iprot.skip(ftype)
       else:
@@ -54,24 +62,30 @@ class AboutToShutDownException(TException):
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('AboutToShutDownException')
-    if self.why is not None:
-      oprot.writeFieldBegin('why', TType.STRING, 1)
-      oprot.writeString(self.why.encode('utf-8'))
+    oprot.writeStructBegin('UserInfo')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.I32, 1)
+      oprot.writeI32(self.id)
+      oprot.writeFieldEnd()
+    if self.username is not None:
+      oprot.writeFieldBegin('username', TType.STRING, 2)
+      oprot.writeString(self.username)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
   def validate(self):
+    if self.id is None:
+      raise TProtocol.TProtocolException(message='Required field id is unset!')
+    if self.username is None:
+      raise TProtocol.TProtocolException(message='Required field username is unset!')
     return
 
 
-  def __str__(self):
-    return repr(self)
-
   def __hash__(self):
     value = 17
-    value = (value * 31) ^ hash(self.why)
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.username)
     return value
 
   def __repr__(self):

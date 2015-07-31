@@ -11,6 +11,7 @@ import gevent.event
 import gevent.local
 import gevent.lock
 import signal
+from thrift.Thrift import TProcessor
 from thrift.protocol.TBinaryProtocol import (TBinaryProtocol, TBinaryProtocolFactory)
 from thrift.transport.TTransport import TMemoryBuffer
 import zmq
@@ -34,6 +35,7 @@ class TUtf8BinaryProtocol(TBinaryProtocol):
     def writeString(self, str):
         if isinstance(str, unicode):
             str = str.encode("utf-8")
+
         TBinaryProtocol.writeString(self, str)
 
 class TUtf8StrBinaryProtocolFactory(TBinaryProtocolFactory):
@@ -56,8 +58,8 @@ class Server(object):
             self.heartbeat_at = time.time() + HEARTBEAT_INTERVAL
 
 
-        # 3. thrift
         self.processor = processor # thrift processor
+
         self.proto_factory_input = TBinaryProtocolFactory()
         self.proto_factory_output = TUtf8StrBinaryProtocolFactory()
 
