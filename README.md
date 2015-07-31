@@ -67,7 +67,7 @@ python thrift_proxy_client.py
 
 ```python
 _ = get_transport(endpoint)
-protocol = get_protocol(service) # 上面的差别在与service不为空
+protocol = get_protocol(service) # 和工作模式1的差别在与service不为空
 client = Client(protocol)
 ```
 
