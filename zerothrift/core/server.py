@@ -196,7 +196,7 @@ class Server(object):
 
                 # 自己也需要发送消息给queue(自己活着的时候才发送hb)
                 elif now >= self.heartbeat_at and self.alive:
-                    # print "Send Hb Msg...", self.events.identity
+                    print "Send Hb Msg...", self.events.identity
                     self.events.emit(self.get_heartbeat_msg(), None)
                     self.heartbeat_at = time.time() + HEARTBEAT_INTERVAL
 
@@ -205,8 +205,9 @@ class Server(object):
 
 
             else:
-                event = self.events.recv()
-                self.task_pool.spawn(self.handle_request, event)
+                event = self.events.poll_event(1)
+                if event:
+                    self.task_pool.spawn(self.handle_request, event)
 
     def run(self):
         import gevent.monkey

@@ -33,7 +33,10 @@ def main():
     service = config[RPC_SERVICE]
     worker_pool_size = int(config[RPC_WORKER_POOL_SIZE])
 
-    s = Server(processor, pool_size=worker_pool_size, service=service)
+
+    print "Load Balance Backend Addr: ", endpoint
+
+    s = Server(processor, pool_size=worker_pool_size, service=service, mode_ppworker=True)
     s.connect(endpoint)
     s.run()
 

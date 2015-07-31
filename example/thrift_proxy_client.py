@@ -2,14 +2,13 @@
 from __future__ import absolute_import
 import time
 import demo_common
-from zerothrift import RPC_DEFAULT_CONFIG, RPC_SERVICE, RPC_PROXY_ADDRESS
-from zerothrift import parse_config
 
 demo_common.setup()
 
 
 def main():
-
+    from zerothrift import RPC_DEFAULT_CONFIG, RPC_SERVICE, RPC_PROXY_ADDRESS
+    from zerothrift import parse_config
     from account_service.AccountService import Client as PingClient
     from zerothrift import (TimeoutException, get_transport, get_protocol)
 
@@ -28,7 +27,6 @@ def main():
     t1 = time.time()
 
     for i in range(0, total_times):
-        print "index: ", i
         try:
             result = client.get_user_by_id(i)
             print "Index: ", i, ", username: ", result.username
@@ -41,7 +39,7 @@ def main():
             print "QPS: %.2f" % (i / (time.time() - t1), )
 
     t = time.time() - t1
-    print "Round Trip: %.4fs" % t / total_times
+    print "Round Trip: %.4fs" % (t / total_times)
 
 if __name__ == "__main__":
     main()
