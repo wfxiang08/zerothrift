@@ -1,5 +1,6 @@
 # ZeroThrift
 * 基本原理同zerorpc
+* python版的RPC的Client&Server, 和rpc_proxy: https://github.com/wfxiang08/rpc_proxy/blob/master/README.md 配合使用
 
 ## 数据序列化采用thrift
 * 和zerorpc相比，将序列化协议改为thrift
