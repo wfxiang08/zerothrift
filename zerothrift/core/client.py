@@ -98,13 +98,10 @@ class TZmqTransport(TTransportBase, CReadableTransport):
                 if err > 0:
                     # Case 2
                     event = self._events.poll_event(int(err * 1000))
+                    print "------- Next: ", err
                 else:
                     # Case 3
                     event = None # 没有读取到有效的Event
-
-                    # 有时进程被fork了，zeromq socket被多个进程共享，则结果会出现混乱
-                    if os.getpid() != self.pid:
-                        raise UnexpectedForkException()
                     break
             else:
                 # Case 1
@@ -119,6 +116,10 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         self._wbuf.write(buf)
 
     def flush(self):
+        # 有时进程被fork了，zeromq socket被多个进程共享，则结果会出现混乱
+        if os.getpid() != self.pid:
+            raise UnexpectedForkException()
+
         msg = self._wbuf.getvalue()
         self._wbuf = StringIO()
 
