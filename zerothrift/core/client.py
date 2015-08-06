@@ -6,6 +6,7 @@ import os
 
 from thrift.transport.TTransport import CReadableTransport
 from thrift.transport.TTransport import TTransportBase
+import time
 import zmq
 
 from zerothrift import Events, Context
@@ -17,6 +18,8 @@ from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
 
 class TimeoutException(Exception):
+    pass
+class UnexpectedForkException(Exception):
     pass
 
 SEQ_NUM_MAX = 9999
@@ -45,6 +48,7 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         :return:
         """
 
+        self.pid = os.getpid()
         self._context = ctx or Context.get_instance()   # 获取zeromq context
         self._events = Events(sock_type, self._context)
         self._events.setsockopt(zmq.IDENTITY, "client-%4d" % os.getpid())
@@ -54,6 +58,7 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         self._rbuf = StringIO()
         self.service = None
         self.timeout = timeout * 1000 # seconds --> milli-seconds
+        self.timeout_in_second = timeout
         self.seqNum = 0
 
     def open(self):
@@ -77,20 +82,32 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         return None
 
     def _read_message(self):
-        # event = self._events.recv()
-
+        t = time.time() + self.timeout_in_second
         event = self._events.poll_event(self.timeout)
 
         while event:
             # print "EventId: ", event.id
             seqNum = self.get_seq_num(event.id)
 
-            # 可能的情况:
-            # seqNum要么 <= self.seqNum, 要么: 远远大于 self.seqNum
-            # 接受到的event是之前的event
-            if seqNum < self.seqNum or (seqNum > SEQ_NUM_HIGH_THRESHOLD and self.seqNum < SEQ_NUM_LOW_THRESHOLD):
-                event = self._events.poll_event(self.timeout)
+            # 等待下一个event
+            # 1. seqNum一致, 读取成功；
+            # 2. 读取到之前出现的event, 然后继续等待，
+            # 3.                                 或者放弃
+            if seqNum != self.seqNum:
+                err = t - time.time()
+                if err > 0:
+                    # Case 2
+                    event = self._events.poll_event(int(err * 1000))
+                else:
+                    # Case 3
+                    event = None # 没有读取到有效的Event
+
+                    # 有时进程被fork了，zeromq socket被多个进程共享，则结果会出现混乱
+                    if os.getpid() != self.pid:
+                        raise UnexpectedForkException()
+                    break
             else:
+                # Case 1
                 break
 
         if not event:

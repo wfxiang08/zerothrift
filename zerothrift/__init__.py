@@ -8,24 +8,53 @@ from zerothrift.core.server import *
 
 _transport = None
 _endpoint = None
+_context = None
+
 
 def get_transport(endpoint=None, timeout=5):
-    global _transport, _endpoint
+    """
+    在Django等单线程模型中，可以直接使用 get_transport；这里假定所有的endpoint是一样的
+    :param endpoint:
+    :param timeout:
+    :return:
+    """
+    global _transport, _endpoint, _context
 
     assert _endpoint is None or _endpoint == endpoint
 
+    if not _context:
+        _context = Context.get_instance()
+
     if not _transport:
         _endpoint = endpoint
-        _transport = TZmqTransport(endpoint, zmq.DEALER, timeout=timeout)
+        _transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout)
         _transport.open()
     return _transport
 
+def create_transport(endpoint=None, timeout=5):
+    """
+    创建一个transport, 这个可以创建到不同的endpoint的transport, 或者为一个pool创建多个transport
+    :param endpoint:
+    :param timeout:
+    :return:
+    """
+    global _context
+    if not _context:
+        _context = Context.get_instance()
 
-def get_protocol(service):
+    transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout)
+    transport.open()
+    return transport
+
+
+
+def get_protocol(service, transport=None):
     assert _transport
-    return TZmqBinaryProtocol(_transport, service=service)
+    return TZmqBinaryProtocol(transport or _transport, service=service)
 
 
+
+# 配置文件相关的参数
 RPC_DEFAULT_CONFIG = "config.ini"
 
 RPC_ZK = "zk"
