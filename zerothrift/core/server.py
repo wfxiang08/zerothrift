@@ -132,12 +132,8 @@ class Server(object):
         except Exception as e:
             # 如何出现了异常该如何处理呢
             # 程序不能挂
-            print "Exception: ", e
-        # t = time.time() - t
-        # self.t += t
-        # self.count += 1
-        # if self.count == 10000:
-        #     print "Processing Time: %.4fs" % (self.t / 10000)
+            logging.exception("Exception: %s", e)
+            # 如何返回呢?
 
 
 
