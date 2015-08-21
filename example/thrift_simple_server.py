@@ -26,8 +26,8 @@ def main():
     from account_service.AccountService import Processor
     processor = Processor(AccountProcessor())
 
-    s = Server(processor, pool_size=5, mode_ppworker=False)
-    s.bind("tcp://127.0.0.1:10004")
+    s = Server(processor, pool_size=5, mode_ppworker=False, profile=True)
+    s.bind("tcp://192.168.0.243:10004")
     s.run()
 
 if __name__ == "__main__":

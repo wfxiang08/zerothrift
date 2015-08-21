@@ -11,7 +11,7 @@ _endpoint = None
 _context = None
 
 
-def get_transport(endpoint=None, timeout=5):
+def get_transport(endpoint=None, timeout=5, profile=False):
     """
     在Django等单线程模型中，可以直接使用 get_transport；这里假定所有的endpoint是一样的
     :param endpoint:
@@ -27,11 +27,11 @@ def get_transport(endpoint=None, timeout=5):
 
     if not _transport:
         _endpoint = endpoint
-        _transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout)
+        _transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout, profile=profile)
         _transport.open()
     return _transport
 
-def create_transport(endpoint=None, timeout=5):
+def create_transport(endpoint=None, timeout=5, profile=False):
     """
     创建一个transport, 这个可以创建到不同的endpoint的transport, 或者为一个pool创建多个transport
     :param endpoint:
@@ -42,7 +42,7 @@ def create_transport(endpoint=None, timeout=5):
     if not _context:
         _context = Context.get_instance()
 
-    transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout)
+    transport = TZmqTransport(endpoint, zmq.DEALER, ctx=_context, timeout=timeout, profile=profile)
     transport.open()
     return transport
 

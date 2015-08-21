@@ -36,7 +36,7 @@ def main():
 
     print "Load Balance Backend Addr: ", endpoint
 
-    s = Server(processor, pool_size=worker_pool_size, service=service, mode_ppworker=True)
+    s = Server(processor, pool_size=worker_pool_size, service=service, mode_ppworker=True, profile=True)
     s.connect(endpoint)
     s.run()
 

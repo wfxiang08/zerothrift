@@ -46,7 +46,7 @@ class TUtf8StrBinaryProtocolFactory(TBinaryProtocolFactory):
 
 class Server(object):
 
-    def __init__(self, processor, zmq_socket_type=zmq.DEALER, context=None, pool_size=5, mode_ppworker=False, service=None):
+    def __init__(self, processor, zmq_socket_type=zmq.DEALER, context=None, pool_size=5, mode_ppworker=False, service=None, profile=False):
         # 1. 获取zeromq context, 以及 events
         self.context = context or Context.get_instance()
         self.events = Events(zmq_socket_type, self.context, mode_ppworker=mode_ppworker, service=service)
@@ -75,6 +75,10 @@ class Server(object):
 
         # 5. 程序退出控制
         self.alive = True
+        self.t = 0
+        self.count = 0
+
+        self.profile = profile
 
     def get_heartbeat_msg(self):
         # 协议: byte0(动作) + byte1(版本) + byte2(并发度)
@@ -105,6 +109,8 @@ class Server(object):
 
     def handle_request(self, event):
 
+        # t = time.time()
+        # 0.2ms
         # 1. 将zeromq的消息转换成为 thrift的 protocols
         trans_input = TMemoryBuffer(event.msg)
         trans_output = TMemoryBuffer()
@@ -118,11 +124,21 @@ class Server(object):
             # 3. 将thirft的结果转换成为 zeromq 格式的数据
             msg = trans_output.getvalue()
             # print "Return Msg: ", msg, event.id
-            self.events.emit(msg, event.id)
+            if self.profile:
+                event.id.extend(["", "%.4f" % time.time()])
+                self.events.emit(msg, event.id)
+            else:
+                self.events.emit(msg, event.id)
         except Exception as e:
             # 如何出现了异常该如何处理呢
             # 程序不能挂
             print "Exception: ", e
+        # t = time.time() - t
+        # self.t += t
+        # self.count += 1
+        # if self.count == 10000:
+        #     print "Processing Time: %.4fs" % (self.t / 10000)
+
 
 
 
@@ -144,7 +160,11 @@ class Server(object):
 
                 # 注意: events现在只从 input获取信息, 如果 handle_request 因为什么原因，导致数据没有返回，而代码却堵在这里了。
                 # poll_event的参数最小为1，否则就成为0, 则无限等待; 也不能设置为None
+                t = time.time()
                 event = self.events.poll_event(1) # 1ms(为什么呢?)
+
+                # print "wait time: %.5fms" % ((time.time() - t) * 1000,)
+
 
                 now = time.time()
                 if event:
@@ -208,6 +228,9 @@ class Server(object):
                 event = self.events.poll_event(1)
                 if event:
                     self.task_pool.spawn(self.handle_request, event)
+
+                if not self.alive:
+                    break
 
     def run(self):
         import gevent.monkey

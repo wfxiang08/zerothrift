@@ -18,7 +18,9 @@ def main():
     endpoint = config[RPC_PROXY_ADDRESS]
     service = config[RPC_SERVICE]
 
-    _ = get_transport(endpoint)
+    print "Endpoint: ", endpoint
+
+    _ = get_transport(endpoint, profile=True)
     protocol = get_protocol(service)
     client = Client(protocol)
 

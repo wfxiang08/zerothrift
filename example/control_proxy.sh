@@ -7,7 +7,7 @@ mkdir -p log
 
 module=rpc_proxy
 app=/usr/local/bin/rpc_proxy
-conf=config.ini
+conf=./config.ini
 proxy_log=log/proxy.log
 pidfile=log/proxy.pid
 logfile=log/app_proxy.log
@@ -64,7 +64,7 @@ function status() {
 }
 
 function tailf() {
-	fs=(`ls -u ${proxy_log}.*`)
+	fs=(`ls -t ${proxy_log}.*`)
 	recent_file=${fs[0]}
     tail -f $recent_file
 }

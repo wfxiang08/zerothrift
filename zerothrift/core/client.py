@@ -38,7 +38,7 @@ class TZmqTransport(TTransportBase, CReadableTransport):
     def bind(self, endpoint, resolve=True):
         return self._events.bind(endpoint, resolve)
 
-    def __init__(self, endpoint, sock_type = zmq.DEALER, ctx = None, timeout=5): # zmq.DEALER
+    def __init__(self, endpoint, sock_type = zmq.DEALER, ctx = None, timeout=5, profile=False): # zmq.DEALER
         """
         如果采用了 local proxy,
         :param endpoint:
@@ -60,6 +60,7 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         self.timeout = timeout * 1000 # seconds --> milli-seconds
         self.timeout_in_second = timeout
         self.seqNum = 0
+        self.profile = profile
 
     def open(self):
         self.connect(self._endpoint)
@@ -88,17 +89,30 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         while event:
             # print "EventId: ", event.id
             seqNum = self.get_seq_num(event.id)
+            if self.profile:
+                print event.id
+                if not event._id[0]:
+                    event._id = event._id[1:]
+                print "Seq: ", event.id[0], "--->",
+                start = float(event.id[2])
+                for i in range(4, len(event.id), 2):
+                    t = float(event.id[i])
+                    print "%.4fs" % (t - start),
+                    start = t
+                print "%.4fs" % (time.time() - start)
+
 
             # 等待下一个event
             # 1. seqNum一致, 读取成功；
             # 2. 读取到之前出现的event, 然后继续等待，
             # 3.                                 或者放弃
             if seqNum != self.seqNum:
-                err = t - time.time()
-                if err > 0:
+                print "SeqNum Not match: ", seqNum, " exp: ", self.seqNum
+                left = t - time.time()
+                if left > 0:
                     # Case 2
-                    event = self._events.poll_event(int(err * 1000))
-                    print "------- Next: ", err
+                    event = self._events.poll_event(int(left * 1000))
+                    print "------- Next: ", left
                 else:
                     # Case 3
                     event = None # 没有读取到有效的Event
@@ -131,10 +145,16 @@ class TZmqTransport(TTransportBase, CReadableTransport):
         # 将Thrift转换成为zeromq
         if self.service:
             # <service, '', msg>
-            self._events.emit(msg, [self.service, "", str(self.seqNum)]) # client似乎没有id
+            if self.profile:
+                self._events.emit(msg, [self.service, "", str(self.seqNum), "", "%.4f" % time.time()]) # client似乎没有id
+            else:
+                self._events.emit(msg, [self.service, "", str(self.seqNum)]) # client似乎没有id
         else:
             # <msg>
-            self._events.emit(msg, [str(self.seqNum)]) # client似乎没有id
+            if self.profile:
+                self._events.emit(msg, [str(self.seqNum), "", "%.4f" % time.time()]) # client似乎没有id
+            else:
+                self._events.emit(msg, [str(self.seqNum)]) # client似乎没有id
 
     # Implement the CReadableTransport interface.
     @property
