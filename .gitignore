@@ -7,3 +7,4 @@ dist/
 .tox
 .idea
 /example/gen-py
+/example/log/

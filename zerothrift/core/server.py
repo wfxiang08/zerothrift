@@ -157,7 +157,7 @@ class Server(object):
                 # 注意: events现在只从 input获取信息, 如果 handle_request 因为什么原因，导致数据没有返回，而代码却堵在这里了。
                 # poll_event的参数最小为1，否则就成为0, 则无限等待; 也不能设置为None
                 t = time.time()
-                event = self.events.poll_event(1) # 1ms(为什么呢?)
+                event = self.events.poll_event(100) # 1ms(为什么呢?)
 
                 # print "wait time: %.5fms" % ((time.time() - t) * 1000,)
 
