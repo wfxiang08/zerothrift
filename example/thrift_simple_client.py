@@ -16,7 +16,7 @@ def main():
     from account_service.AccountService import Client
     from zerothrift import (TimeoutException, get_transport, get_protocol)
 
-    _ = get_transport("tcp://192.168.0.243:10004", timeout=5, profile=True)
+    _ = get_transport("tcp://127.0.0.1:10004", timeout=5, profile=True)
 
     protocol = get_protocol("")
     client = Client(protocol)
